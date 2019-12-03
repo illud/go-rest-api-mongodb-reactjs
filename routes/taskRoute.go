@@ -9,6 +9,7 @@ import (
 	models "../models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -72,16 +73,23 @@ func GetTasks(c *gin.Context) {
 }
 
 func DeleteTask(c *gin.Context) {
+	//https://kb.objectrocket.com/mongo-db/how-to-delete-mongodb-documents-using-the-golang-driver-443
 	var taskBody models.TaskGet
 	c.BindJSON(&taskBody)
 
 	collection := db.CNX.Database("tasks").Collection("task")
-
-	deleteResult, err := collection.DeleteMany(context.TODO(), bson.D{{}})
+	// Declare a primitive ObjectID from a hexadecimal string
+	idPrimitive, err := primitive.ObjectIDFromHex(taskBody.ID)
+	if err != nil {
+		log.Fatal("primitive.ObjectIDFromHex ERROR:", err)
+	}
+	deleteResult, err := collection.DeleteOne(context.TODO(), bson.M{"_id": idPrimitive})
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("Deleted %v documents in the trainers collection\n", deleteResult.DeletedCount)
-	fmt.Println(taskBody.ID)
+	c.JSON(200, gin.H{
+		"tasks": "Deleted",
+	})
 }
